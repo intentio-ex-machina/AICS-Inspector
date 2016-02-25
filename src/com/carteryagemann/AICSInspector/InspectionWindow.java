@@ -56,6 +56,8 @@ public class InspectionWindow extends javax.swing.JFrame {
         openFileChooser = new javax.swing.JFileChooser();
         topToolBar = new javax.swing.JToolBar();
         loadButton = new javax.swing.JButton();
+        typeComboBox = new javax.swing.JComboBox<>();
+        filterButton = new javax.swing.JButton();
         jSplitPane1 = new javax.swing.JSplitPane();
         jScrollPane1 = new javax.swing.JScrollPane();
         packetList = new javax.swing.JList<>();
@@ -83,6 +85,22 @@ public class InspectionWindow extends javax.swing.JFrame {
             }
         });
         topToolBar.add(loadButton);
+
+        typeComboBox.setMaximumRowCount(4);
+        typeComboBox.setModel(new javax.swing.DefaultComboBoxModel<>(new String[] { "All", "Activity", "Broadcast", "Service" }));
+        typeComboBox.setToolTipText("Select the type of intents to show.");
+        topToolBar.add(typeComboBox);
+
+        filterButton.setText("Filter");
+        filterButton.setFocusable(false);
+        filterButton.setHorizontalTextPosition(javax.swing.SwingConstants.CENTER);
+        filterButton.setVerticalTextPosition(javax.swing.SwingConstants.BOTTOM);
+        filterButton.addMouseListener(new java.awt.event.MouseAdapter() {
+            public void mouseClicked(java.awt.event.MouseEvent evt) {
+                filterButtonMouseClicked(evt);
+            }
+        });
+        topToolBar.add(filterButton);
 
         jSplitPane1.setDividerLocation(350);
         jSplitPane1.setOrientation(javax.swing.JSplitPane.VERTICAL_SPLIT);
@@ -177,15 +195,37 @@ public class InspectionWindow extends javax.swing.JFrame {
             }
             packetList.setModel(model);
             statusPane.setText(file.getAbsolutePath());
+            typeComboBox.setSelectedIndex(0);
         }
     }//GEN-LAST:event_loadButtonMouseClicked
 
     private void packetListValueChanged(javax.swing.event.ListSelectionEvent evt) {//GEN-FIRST:event_packetListValueChanged
         if (AICS_FILE == null) return;
         int index = packetList.getSelectedIndex();
-        if (index < 0 || index >= AICS_FILE.size()) return;
+        //if (index < 0 || index >= packetList.getMaxSelectionIndex()) return;
         
-        IntentHeader head = AICS_FILE.getIntent(index);
+        int filterType = typeComboBox.getSelectedIndex();
+        IntentHeader head = null;
+        int counter = -1;
+        for (int i = 0; i < AICS_FILE.size(); i++) {
+            switch (AICS_FILE.getIntent(i).getIntentType()) {
+                case IntentHeader.TYPE_ACTIVITY:
+                    if (filterType == 0 || filterType == 1) counter++;
+                    break;
+                case IntentHeader.TYPE_BROADCAST:
+                    if (filterType == 0 || filterType == 2) counter++;
+                    break;
+                case IntentHeader.TYPE_SERVICE:
+                    if (filterType == 0 || filterType == 3) counter++;
+                    break;
+            }
+            if (counter == index) {
+                head = AICS_FILE.getIntent(i);
+                break;
+            }
+        }
+        if (head == null) return;
+        
         DefaultListModel model = new DefaultListModel();
         // Generic Header
         model.addElement("----- HEADER -----");
@@ -244,6 +284,31 @@ public class InspectionWindow extends javax.swing.JFrame {
         detailedList.setModel(model);
     }//GEN-LAST:event_packetListValueChanged
 
+    private void filterButtonMouseClicked(java.awt.event.MouseEvent evt) {//GEN-FIRST:event_filterButtonMouseClicked
+        if (AICS_FILE != null) {
+            int filterType = typeComboBox.getSelectedIndex();
+            // Create elements for top list
+            DefaultListModel model = new DefaultListModel();
+            for (int i = 0; i < AICS_FILE.size(); i++) {
+                IntentHeader head = AICS_FILE.getIntent(i);
+                int intentType = head.getIntentType();
+                if (intentType == IntentHeader.TYPE_ACTIVITY && (filterType == 0 || filterType == 1)) {
+                    ActivityIntentHeader aHead = (ActivityIntentHeader) head;
+                    model.addElement("Activity - " + aHead.getCallerComponent());
+                }
+                if (intentType == IntentHeader.TYPE_BROADCAST && (filterType == 0 || filterType == 2)) {
+                    BroadcastIntentHeader bHead = (BroadcastIntentHeader) head;
+                    model.addElement("Broadcast - " + bHead.getCallerComponent());
+                }
+                if (intentType == IntentHeader.TYPE_SERVICE && (filterType == 0 || filterType == 3)) {
+                    ServiceIntentHeader sHead = (ServiceIntentHeader) head;
+                    model.addElement("Service - " + sHead.getCallerComponent());
+                }
+            }
+            packetList.setModel(model);
+        }
+    }//GEN-LAST:event_filterButtonMouseClicked
+
     /**
      * @param args the command line arguments
      */
@@ -281,6 +346,7 @@ public class InspectionWindow extends javax.swing.JFrame {
 
     // Variables declaration - do not modify//GEN-BEGIN:variables
     private javax.swing.JList<String> detailedList;
+    private javax.swing.JButton filterButton;
     private javax.swing.JScrollPane jScrollPane1;
     private javax.swing.JScrollPane jScrollPane2;
     private javax.swing.JScrollPane jScrollPane3;
@@ -290,5 +356,6 @@ public class InspectionWindow extends javax.swing.JFrame {
     private javax.swing.JList<String> packetList;
     private javax.swing.JTextPane statusPane;
     private javax.swing.JToolBar topToolBar;
+    private javax.swing.JComboBox<String> typeComboBox;
     // End of variables declaration//GEN-END:variables
 }
